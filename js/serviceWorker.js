@@ -27,7 +27,9 @@ try {
         }
     });
     chrome.runtime.onInstalled.addListener(async function (details) {
-        if (details.reason == "install") {
+        // Le Git Graph Plus: no first-run tour. Its overlay covers the page and
+        // waits for sign-in at step 2, which reads as a frozen tab.
+        if (details.reason == "install" && false) {
             freTab = await chrome.tabs.create({ url: "https://www.github.com/NirmalScaria/le-git-graph/?fre=true&reason=" + details.reason });
         }
         else if (details.reason == "update") {

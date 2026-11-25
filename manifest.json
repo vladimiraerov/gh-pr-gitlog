@@ -18,7 +18,6 @@
         "js/showCommitsLoading.js",
         "js/getLocalToken.js",
         "js/addAuthorizationPrompt.js",
-        "js/authorisation/oauth2.js",
         "js/fetchCommits.js",
         "js/fetchFilteredCommits.js",
         "js/showCommits.js",
@@ -32,16 +31,6 @@
         "js/fre/updateFre.js",
         "js/fre/installFre.js",
         "js/fre/handler.js"
-      ],
-      "run_at": "document_end"
-    },
-    {
-      "matches": [
-        "*://*.scaria.dev/github-tree-graph/authorize*",
-        "*://*.scaria.dev/github-tree-graph/authorize/*"
-      ],
-      "js": [
-        "js/authProcess.js"
       ],
       "run_at": "document_end"
     }
@@ -73,7 +62,6 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "js/authInject.js",
         "images/popup.png",
         "html/branchSelection.html",
         "html/authorizationPrompt.html",

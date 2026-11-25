@@ -36,6 +36,10 @@ function reloadThisPage() {
 }
 
 function openAuthorization() {
+  // Le Git Graph Plus: the OAuth sign-in goes through the le-git-graph author's
+  // server (scaria.dev), which then holds a read+write repo token. Never start
+  // it; access is only through a personal access token the user creates.
+  return;
   var authorizationButton = document.getElementById('authorizationType');
   var authorization_url = 'https://github.com/login/oauth/authorize';
   var client_id = '91ddd618eba025e4104e';
@@ -144,6 +148,36 @@ async function addAuthorizationPrompt(reason) {
         }
       });
       authorizationReason.innerHTML = reason;
+      // Le Git Graph Plus: token only. Hide the sign-in button group and show the
+      // token box with its own save button.
+      newContent.querySelector('#authorizationButton').style.display = 'none';
+      newContent.querySelector('#authorizationTitle').textContent = 'Add a GitHub token to continue';
+      authorizationTypeButton.value = 'customPAT';
+      var tokenInput = newContent.querySelector('.custom-pat-input');
+      tokenInput.type = 'password';
+      tokenInput.placeholder = 'Paste a GitHub personal access token';
+      tokenInput.style.display = 'block';
+      var saveButton = newContent.querySelector('#authorizationStatusButton');
+      saveButton.textContent = 'Save token';
+      saveButton.style.display = 'inline-block';
+      saveButton.addEventListener('click', function () {
+        if (tokenInput.value.trim()) {
+          tokenInput.value = tokenInput.value.trim();
+          proceedForAuthorization();
+        }
+      });
+      var help = document.createElement('p');
+      help.className = 'mb-3';
+      help.style.color = 'gray';
+      help.append('Create one at ');
+      var link = document.createElement('a');
+      link.href = 'https://github.com/settings/tokens/new?description=le-git-graph';
+      link.target = '_blank';
+      link.textContent = 'github.com/settings/tokens';
+      help.append(link, ' (no scopes needed for public repos; tick "repo" for private ones). ' +
+        'For an org with SAML SSO, click "Configure SSO" next to the token and authorize it. ' +
+        'The token is stored in this browser only and sent only to api.github.com.');
+      saveButton.insertAdjacentElement('afterend', help);
       contentView.appendChild(newContent);
       var customPATInput = document.getElementsByClassName('custom-pat-input')[0];
       customPATInput.addEventListener('input', function (e) {
