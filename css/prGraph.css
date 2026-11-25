@@ -1,0 +1,46 @@
+/* PR graph panel: terminal-like `git log --graph --oneline --decorate`. */
+#lgg-pr-graph {
+    margin: 12px 0;
+    width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;
+    border: 1px solid var(--borderColor-default, #30363d);
+    border-radius: 6px;
+    background: #0d1117;
+    color: #c9d1d9;
+    font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+#lgg-pr-graph > summary {
+    cursor: pointer;
+    padding: 6px 10px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    user-select: none;
+}
+#lgg-pr-graph[open] > summary { border-bottom: 1px solid #30363d; }
+#lgg-pr-graph .lgg-pr-title { font-weight: 600; color: #e6edf3; }
+#lgg-pr-graph .lgg-pr-stats { color: #8b949e; flex: 1; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+#lgg-pr-graph .lgg-pr-refresh {
+    background: none; border: 1px solid #30363d; border-radius: 4px;
+    color: #8b949e; cursor: pointer; padding: 0 6px; font: inherit;
+}
+#lgg-pr-graph .lgg-pr-refresh:hover { color: #e6edf3; }
+#lgg-pr-graph .lgg-pr-content { max-height: 60vh; overflow: auto; padding: 4px 0; }
+#lgg-pr-graph .lgg-pr-body { position: relative; }
+#lgg-pr-graph .lgg-pr-svg { position: absolute; left: 0; top: 0; }
+#lgg-pr-graph .lgg-pr-row {
+    height: 22px; display: flex; align-items: center; gap: 6px;
+    white-space: nowrap; padding-right: 10px;
+}
+#lgg-pr-graph .lgg-pr-row:hover { background: #161b22; }
+#lgg-pr-graph .lgg-pr-base .lgg-pr-subject { color: #8b949e; }
+#lgg-pr-graph .lgg-pr-sha { color: #d29922; text-decoration: none; }
+#lgg-pr-graph .lgg-pr-sha:hover { text-decoration: underline; }
+#lgg-pr-graph .lgg-pr-refs { color: #d29922; }
+#lgg-pr-graph .lgg-pr-ref-head { color: #39c5cf; font-weight: 600; }
+#lgg-pr-graph .lgg-pr-ref-branch { color: #f47067; font-weight: 600; }
+#lgg-pr-graph .lgg-pr-ref-base { color: #57ab5a; font-weight: 600; }
+#lgg-pr-graph .lgg-pr-ref-mergebase { color: #b083f0; }
+#lgg-pr-graph .lgg-pr-subject { overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+#lgg-pr-graph .lgg-pr-meta { color: #6e7681; }
+#lgg-pr-graph .lgg-pr-note, #lgg-pr-graph .lgg-pr-error { padding: 6px 10px; color: #8b949e; }
+#lgg-pr-graph .lgg-pr-error { color: #f47067; }

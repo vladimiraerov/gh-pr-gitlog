@@ -1,0 +1,56 @@
+/* File tree sidebar. */
+:root { --lgg-tree-w: 300px; }
+/* Shift the page right without making it wider than the window. */
+html.lgg-tree-shown body {
+    margin-left: var(--lgg-tree-w) !important;
+    width: calc(100% - var(--lgg-tree-w)) !important;
+    min-width: 0 !important;
+}
+
+#lgg-tree-toggle {
+    position: fixed; left: 0; bottom: 16px; z-index: 101;
+    border: 1px solid var(--borderColor-default, #d0d7de); border-left: none;
+    border-radius: 0 6px 6px 0;
+    background: var(--bgColor-default, #fff); color: var(--fgColor-default, #1f2328);
+    padding: 8px 5px; cursor: pointer; font-size: 14px; line-height: 1;
+}
+html.lgg-tree-shown #lgg-tree-toggle { display: none; }
+
+#lgg-tree {
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
+    width: var(--lgg-tree-w);
+    display: flex; flex-direction: column;
+    background: var(--bgColor-default, #fff); color: var(--fgColor-default, #1f2328);
+    border-right: 1px solid var(--borderColor-default, #d0d7de);
+    font-size: 13px;
+}
+#lgg-tree[hidden] { display: none; }
+#lgg-tree .lgg-tree-head {
+    display: flex; align-items: center; padding: 8px 10px;
+    border-bottom: 1px solid var(--borderColor-default, #d0d7de); font-weight: 600;
+}
+#lgg-tree .lgg-tree-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#lgg-tree .lgg-tree-close { background: none; border: none; cursor: pointer; font-size: 18px; color: inherit; }
+#lgg-tree .lgg-tree-filter {
+    margin: 8px 10px; padding: 4px 8px; font: inherit;
+    border: 1px solid var(--borderColor-default, #d0d7de); border-radius: 6px;
+    background: var(--bgColor-muted, #f6f8fa); color: inherit;
+}
+#lgg-tree .lgg-tree-body { flex: 1; overflow: auto; padding-bottom: 12px; }
+#lgg-tree .lgg-tree-row {
+    display: flex; align-items: center; gap: 4px; height: 24px; padding-right: 8px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: inherit; text-decoration: none; cursor: pointer;
+}
+#lgg-tree .lgg-tree-row:hover { background: var(--bgColor-muted, #f6f8fa); }
+#lgg-tree .lgg-tree-dir { font-weight: 600; }
+#lgg-tree .lgg-tree-caret { width: 10px; color: var(--fgColor-muted, #656d76); }
+#lgg-tree .lgg-tree-submodule { color: var(--fgColor-muted, #656d76); cursor: default; }
+#lgg-tree .lgg-tree-added { color: var(--fgColor-success, #1a7f37); }
+#lgg-tree .lgg-tree-removed { color: var(--fgColor-danger, #d1242f); text-decoration: line-through; }
+#lgg-tree .lgg-tree-renamed { color: var(--fgColor-attention, #9a6700); }
+#lgg-tree .lgg-tree-stat { margin-left: auto; padding-left: 8px; font-size: 11px; text-decoration: none; }
+#lgg-tree .lgg-tree-add { color: var(--fgColor-success, #1a7f37); }
+#lgg-tree .lgg-tree-del { color: var(--fgColor-danger, #d1242f); }
+#lgg-tree .lgg-tree-note { padding: 8px 10px; color: var(--fgColor-muted, #656d76); }
+#lgg-tree .lgg-tree-error { padding: 8px 10px; color: var(--fgColor-danger, #d1242f); }

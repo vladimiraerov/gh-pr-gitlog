@@ -1,7 +1,7 @@
 {
-  "version": "1.4.3",
-  "name": "Le Git Graph - Commits Graph for GitHub",
-  "description": "A browser extension that displays the git graph for any GitHub repository.",
+  "version": "1.4.3.1",
+  "name": "Le Git Graph Plus",
+  "description": "le-git-graph commits graph, plus a git log --graph panel on pull requests and a file tree sidebar.",
   "manifest_version": 3,
   "content_scripts": [
     {
@@ -9,7 +9,9 @@
         "*://*.github.com/*"
       ],
       "css": [
-        "css/background.css"
+        "css/background.css",
+        "css/prGraph.css",
+        "css/fileTree.css"
       ],
       "js": [
         "js/showLegend.js",
@@ -30,7 +32,10 @@
         "js/fre/helper.js",
         "js/fre/updateFre.js",
         "js/fre/installFre.js",
-        "js/fre/handler.js"
+        "js/fre/handler.js",
+        "js/common/api.js",
+        "js/pr/prGraph.js",
+        "js/tree/fileTree.js"
       ],
       "run_at": "document_end"
     }
@@ -47,7 +52,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "{fd903445-e572-42dd-90be-ae63dd5840ea}"
+      "id": "le-git-graph-plus@localhost"
     }
   },
   "icons": {
