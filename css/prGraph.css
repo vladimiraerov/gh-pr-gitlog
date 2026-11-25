@@ -1,46 +1,76 @@
-/* PR graph panel: terminal-like `git log --graph --oneline --decorate`. */
+/* PR commit graph: a card styled like GitHub's merge box ("Review requested"),
+   using GitHub's theme variables so it follows light and dark mode. */
 #lgg-pr-graph {
-    margin: 12px 0;
+    margin: 0 0 16px;
     width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;
-    border: 1px solid var(--borderColor-default, #30363d);
+    border: 1px solid var(--borderColor-default, #d1d9e0);
     border-radius: 6px;
-    background: #0d1117;
-    color: #c9d1d9;
-    font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--bgColor-default, #fff);
+    color: var(--fgColor-default, #1f2328);
+    font-size: 14px;
 }
+#lgg-pr-graph.lgg-pr-in-stack { margin: 0; }
 #lgg-pr-graph > summary {
     cursor: pointer;
-    padding: 6px 10px;
+    padding: 12px 16px;
     display: flex;
     gap: 12px;
     align-items: center;
+    list-style: none;
     user-select: none;
 }
-#lgg-pr-graph[open] > summary { border-bottom: 1px solid #30363d; }
-#lgg-pr-graph .lgg-pr-title { font-weight: 600; color: #e6edf3; }
-#lgg-pr-graph .lgg-pr-stats { color: #8b949e; flex: 1; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
-#lgg-pr-graph .lgg-pr-refresh {
-    background: none; border: 1px solid #30363d; border-radius: 4px;
-    color: #8b949e; cursor: pointer; padding: 0 6px; font: inherit;
+#lgg-pr-graph > summary::-webkit-details-marker { display: none; }
+#lgg-pr-graph[open] > summary { border-bottom: 1px solid var(--borderColor-muted, #d1d9e0b3); }
+#lgg-pr-graph .lgg-pr-icon {
+    flex: none; width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bgColor-neutral-muted, #818b981f);
+    color: var(--fgColor-muted, #59636e);
 }
-#lgg-pr-graph .lgg-pr-refresh:hover { color: #e6edf3; }
-#lgg-pr-graph .lgg-pr-content { max-height: 60vh; overflow: auto; padding: 4px 0; }
+#lgg-pr-graph .lgg-pr-heading { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#lgg-pr-graph .lgg-pr-title { font-weight: 600; line-height: 1.5; }
+#lgg-pr-graph .lgg-pr-stats {
+    color: var(--fgColor-muted, #59636e); font-size: 12px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#lgg-pr-graph .lgg-pr-refresh {
+    flex: none; font: inherit; font-size: 12px; font-weight: 500; line-height: 20px;
+    padding: 3px 12px; cursor: pointer; border-radius: 6px;
+    border: 1px solid var(--button-default-borderColor-rest, var(--borderColor-default, #d1d9e0));
+    background: var(--button-default-bgColor-rest, #f6f8fa);
+    color: var(--button-default-fgColor-rest, var(--fgColor-default, #25292e));
+}
+#lgg-pr-graph .lgg-pr-refresh:hover { background: var(--button-default-bgColor-hover, #eff2f5); }
+
+#lgg-pr-graph .lgg-pr-content { max-height: 50vh; overflow: auto; padding: 4px 0; }
 #lgg-pr-graph .lgg-pr-body { position: relative; }
 #lgg-pr-graph .lgg-pr-svg { position: absolute; left: 0; top: 0; }
 #lgg-pr-graph .lgg-pr-row {
     height: 22px; display: flex; align-items: center; gap: 6px;
-    white-space: nowrap; padding-right: 10px;
+    white-space: nowrap; padding-right: 16px; font-size: 12px;
 }
-#lgg-pr-graph .lgg-pr-row:hover { background: #161b22; }
-#lgg-pr-graph .lgg-pr-base .lgg-pr-subject { color: #8b949e; }
-#lgg-pr-graph .lgg-pr-sha { color: #d29922; text-decoration: none; }
-#lgg-pr-graph .lgg-pr-sha:hover { text-decoration: underline; }
-#lgg-pr-graph .lgg-pr-refs { color: #d29922; }
-#lgg-pr-graph .lgg-pr-ref-head { color: #39c5cf; font-weight: 600; }
-#lgg-pr-graph .lgg-pr-ref-branch { color: #f47067; font-weight: 600; }
-#lgg-pr-graph .lgg-pr-ref-base { color: #57ab5a; font-weight: 600; }
-#lgg-pr-graph .lgg-pr-ref-mergebase { color: #b083f0; }
+#lgg-pr-graph .lgg-pr-row:hover { background: var(--bgColor-muted, #f6f8fa); }
+#lgg-pr-graph .lgg-pr-sha {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--fgColor-muted, #59636e); text-decoration: none;
+}
+#lgg-pr-graph .lgg-pr-sha:hover { color: var(--fgColor-accent, #0969da); text-decoration: underline; }
 #lgg-pr-graph .lgg-pr-subject { overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
-#lgg-pr-graph .lgg-pr-meta { color: #6e7681; }
-#lgg-pr-graph .lgg-pr-note, #lgg-pr-graph .lgg-pr-error { padding: 6px 10px; color: #8b949e; }
-#lgg-pr-graph .lgg-pr-error { color: #f47067; }
+#lgg-pr-graph .lgg-pr-base .lgg-pr-subject { color: var(--fgColor-muted, #59636e); }
+#lgg-pr-graph .lgg-pr-meta { color: var(--fgColor-muted, #59636e); }
+
+/* Ref labels, like the branch labels in the PR header. */
+#lgg-pr-graph .lgg-pr-refs { display: inline-flex; gap: 4px; flex: none; max-width: 50%; overflow: hidden; }
+#lgg-pr-graph .lgg-pr-ref {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px;
+    line-height: 18px; padding: 0 6px; border-radius: 6px;
+    overflow: hidden; text-overflow: ellipsis; max-width: 260px;
+    flex: 0 1 auto; min-width: 4ch;
+    color: var(--fgColor-accent, #0969da); background: var(--bgColor-accent-muted, #ddf4ff);
+}
+#lgg-pr-graph .lgg-pr-ref-head { flex-shrink: 0; color: var(--fgColor-success, #1a7f37); background: var(--bgColor-success-muted, #dafbe1); font-weight: 600; }
+#lgg-pr-graph .lgg-pr-ref-base { font-weight: 600; }
+#lgg-pr-graph .lgg-pr-ref-mergebase { color: var(--fgColor-done, #8250df); background: var(--bgColor-done-muted, #fbefff); }
+
+#lgg-pr-graph .lgg-pr-note, #lgg-pr-graph .lgg-pr-error { padding: 8px 16px; font-size: 12px; color: var(--fgColor-muted, #59636e); }
+#lgg-pr-graph .lgg-pr-error { color: var(--fgColor-danger, #d1242f); }

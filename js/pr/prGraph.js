@@ -332,8 +332,8 @@
             var color = COLORS[row.color % COLORS.length];
             var merge = row.commit.parents.length > 1;
             svg.appendChild(svgEl('circle', {
-                cx: x(row.col), cy: y(r), r: DOT_R,
-                fill: merge ? '#0d1117' : color, stroke: color, 'stroke-width': 2,
+                cx: x(row.col), cy: y(r), r: DOT_R, stroke: color, 'stroke-width': 2,
+                style: 'fill:' + (merge ? 'var(--bgColor-default, #fff)' : color),
             }));
         });
 
@@ -347,12 +347,10 @@
                 el('a', { class: 'lgg-pr-sha', href: href, title: c.sha, text: c.sha.slice(0, 7) }));
             var rs = refs.get(c.sha);
             if (rs && rs.length) {
-                var deco = el('span', { class: 'lgg-pr-refs' }, '(');
-                rs.forEach(function (ref, i) {
-                    if (i) deco.appendChild(document.createTextNode(', '));
-                    deco.appendChild(el('span', { class: 'lgg-pr-ref lgg-pr-ref-' + ref.kind, text: ref.name }));
+                var deco = el('span', { class: 'lgg-pr-refs' });
+                rs.forEach(function (ref) {
+                    deco.appendChild(el('span', { class: 'lgg-pr-ref lgg-pr-ref-' + ref.kind, title: ref.name, text: ref.name }));
                 });
-                deco.appendChild(document.createTextNode(')'));
                 line.appendChild(deco);
             }
             line.appendChild(el('span', { class: 'lgg-pr-subject', title: c.subject, text: c.subject }));
@@ -386,8 +384,25 @@
         try { sessionStorage.setItem('lgg-pr:v2:' + key, JSON.stringify(data)); } catch (e) { /* quota */ }
     }
 
-    // Where to put the panel: under the PR title header if found, else on top of main.
+    // Where to put the panel: in the conversation column like the merge box
+    // card (above it on the React layout, at the top of the timeline on the
+    // classic one); on tabs without either, under the PR title.
     function anchor() {
+        // Overview layout (logged in, 2026-11): the "Recommended action" card
+        // ("Review requested", "Ready to merge", ...) is one of a column of
+        // cards; go right above it, or at the top of that column without it.
+        var action = document.querySelector('section[aria-label="Recommended action"]');
+        for (var n = action; n && n.parentElement; n = n.parentElement) {
+            if (n.parentElement.matches('.d-flex.flex-column')) return { node: n, where: 'beforebegin', stack: true };
+            if (/PageLayout-Content-/.test(n.parentElement.className)) break;
+        }
+        var stack = /\/pull\/\d+\/?$/.test(location.pathname) &&
+            document.querySelector('[class*="PageLayout-Content-"] > .d-flex.flex-column');
+        if (stack) return { node: stack, where: 'afterbegin', stack: true };
+        var mergeBox = document.querySelector('[data-testid="mergebox-partial"], [class*="MergeBox-module"], [data-testid*="merge-box"]');
+        if (mergeBox) return { node: mergeBox, where: 'beforebegin' };
+        var timeline = document.querySelector('#discussion_bucket .js-discussion');
+        if (timeline) return { node: timeline, where: 'afterbegin' };
         var header = document.querySelector('#partial-discussion-header') ||
             document.querySelector('.gh-header-show') ||
             // React PR layout (seen on merged PRs, 2026-11): the page header.
@@ -411,17 +426,24 @@
         details.addEventListener('toggle', function () {
             localStorage.setItem('lgg-pr-collapsed', details.open ? '0' : '1');
         });
-        var title = el('span', { class: 'lgg-pr-title', text: 'git log --graph' });
-        var stats = el('span', { class: 'lgg-pr-stats', text: 'loading…' });
-        var refresh = el('button', { class: 'lgg-pr-refresh', type: 'button', title: 'Reload from GitHub', text: '↻' });
+        var icon = el('span', { class: 'lgg-pr-icon' });
+        var iconSvg = svgEl('svg', { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' });
+        // octicon git-commit
+        iconSvg.appendChild(svgEl('path', { 'fill-rule': 'evenodd', fill: 'currentColor',
+            d: 'M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h3.32a.75.75 0 110 1.5h-3.32z' }));
+        icon.appendChild(iconSvg);
+        var title = el('span', { class: 'lgg-pr-title', text: 'Commit graph' });
+        var stats = el('span', { class: 'lgg-pr-stats', text: 'Loading…' });
+        var refresh = el('button', { class: 'lgg-pr-refresh', type: 'button', title: 'Reload from GitHub', text: 'Reload' });
         refresh.addEventListener('click', function (ev) {
             ev.preventDefault();
             sessionStorage.removeItem('lgg-pr:v2:' + pr.key);
             mount(pr, true);
         });
         var content = el('div', { class: 'lgg-pr-content' });
-        details.appendChild(el('summary', null, title, stats, refresh));
+        details.appendChild(el('summary', null, icon, el('span', { class: 'lgg-pr-heading' }, title, stats), refresh));
         details.appendChild(content);
+        details.classList.toggle('lgg-pr-in-stack', !!at.stack);
         at.node.insertAdjacentElement(at.where, details);
 
         var cached = force ? null : cacheGet(pr.key);
@@ -433,13 +455,19 @@
             if (mounting !== job) return;
             if (!cached) cachePut(pr.key, data);
             stats.textContent = data.baseLabel + ' … ' + data.headLabel +
-                '  ·  ' + data.aheadBy + ' ahead, ' + data.behindBy + ' behind';
+                ' · ' + data.aheadBy + ' ahead, ' + data.behindBy + ' behind';
             content.appendChild(renderGraph(data));
         }).catch(function (err) {
             if (mounting !== job) return;
             stats.textContent = '';
             content.appendChild(el('div', { class: 'lgg-pr-error', text: String(err.message || err) }));
         });
+    }
+
+    function isPlaced(panel, at) {
+        if (at.where === 'beforebegin') return panel.nextElementSibling === at.node;
+        if (at.where === 'afterbegin') return at.node.firstElementChild === panel;
+        return panel.previousElementSibling === at.node;
     }
 
     // GitHub navigates without page loads and re-renders parts of the page,
@@ -451,8 +479,9 @@
         if (panel && panel.getAttribute('data-pr') === pr.key) {
             // Mounted before GitHub rendered the PR header: move it under the header.
             var at = anchor();
-            if (at && at.where === 'afterend' && panel.previousElementSibling !== at.node) {
-                at.node.insertAdjacentElement('afterend', panel);
+            if (at && !isPlaced(panel, at)) {
+                panel.classList.toggle('lgg-pr-in-stack', !!at.stack);
+                at.node.insertAdjacentElement(at.where, panel);
             }
             return;
         }
