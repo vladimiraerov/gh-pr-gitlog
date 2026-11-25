@@ -12,7 +12,8 @@
         "css/background.css",
         "css/prGraph.css",
         "css/fileTree.css",
-        "css/fileTabs.css"
+        "css/fileTabs.css",
+        "css/remerge.css"
       ],
       "js": [
         "js/showLegend.js",
@@ -37,7 +38,8 @@
         "js/common/api.js",
         "js/pr/prGraph.js",
         "js/tree/fileTabs.js",
-        "js/tree/fileTree.js"
+        "js/tree/fileTree.js",
+        "js/pr/remerge.js"
       ],
       "run_at": "document_end"
     }
@@ -82,5 +84,8 @@
         "<all_urls>"
       ]
     }
+  ],
+  "permissions": [
+    "nativeMessaging"
   ]
 }

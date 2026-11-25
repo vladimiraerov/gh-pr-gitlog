@@ -162,6 +162,8 @@
             expand.addEventListener('click', function () { expandAll(expand); });
             bar.appendChild(expand);
         }
+        // Other features add their own controls (js/pr/remerge.js).
+        (window.lggTabBarHooks || []).forEach(function (hook) { hook(bar, s); });
     }
 
     // Expand every diff on the page in full: GitHub's per-file "Expand all"
@@ -256,7 +258,7 @@
     }
 
     window.lggTabs = {
-        openPrFile: openPrFile, jumpToDiff: jumpToDiff,
+        openPrFile: openPrFile, jumpToDiff: jumpToDiff, rerender: render,
         viewedControl: viewedControl, isViewed: isViewed,
     };
 

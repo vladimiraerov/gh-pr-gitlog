@@ -13,6 +13,20 @@ After pulling changes, press ↻ on the extension card and reload the GitHub tab
 
 Firefox (until restart): `about:debugging#/runtime/this-firefox` → Load Temporary Add-on → `manifest.json`.
 
+## Manual resolution of merge commits
+
+On a PR with merge commits, **Manual resolution** in the tab bar shows `git show --remerge-diff --format= <merge>`:
+the merge result against git's own automatic re-merge of its parents, i.e. only the hand-made part of the conflict resolution.
+It runs git in a local clone through a native messaging host. One-time setup:
+
+1. `native/install.sh` registers the host with Chrome (and Brave/Edge/Chromium if installed), for this extension only.
+2. Map each repo to a clone in `~/.remerge/repos.json`, e.g. `{"owner/repo": "/path/to/clone"}`;
+   use `{"path": "...", "fetch_url": "git@github.com:owner/repo.git"}` for a private repo over ssh.
+3. Restart the browser.
+
+A merge commit the clone lacks is fetched from `pull/<n>/head` (objects only; no ref or FETCH_HEAD is written).
+`native/install.sh --uninstall` removes the registration. Needs git 2.36 or newer.
+
 ## Token
 
 Without a token GitHub allows 60 API calls per hour per IP, enough for light use on public repos.

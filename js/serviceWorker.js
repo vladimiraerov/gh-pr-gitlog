@@ -1,3 +1,5 @@
+// Le Git Graph Plus: the "Manual resolution" relay to the native git host.
+try { importScripts('pr/remergeWorker.js'); } catch (e) { console.log(e); }
 try {
     var githubTab;
     var freTab;
