@@ -54,3 +54,4 @@
     margin: 6px 0 0; padding: 8px 12px; border-radius: 6px; font-size: 12px;
     background: var(--bgColor-muted, #f6f8fa);
 }
+#lgg-tabs .lgg-remerge-failed { color: var(--fgColor-attention, #9a6700); font-weight: 500; }

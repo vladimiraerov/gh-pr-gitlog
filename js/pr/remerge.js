@@ -216,8 +216,23 @@
                 loading.set(s.key, loadMerges(s).then(function (l) {
                     merges.set(s.key, l);
                     if (window.lggTabs) window.lggTabs.rerender();
-                }).catch(function () { merges.set(s.key, []); }));
+                }).catch(function (e) {
+                    merges.set(s.key, { error: String(e.message || e) });
+                    if (window.lggTabs) window.lggTabs.rerender();
+                }));
             }
+            return;
+        }
+        if (list.error) {
+            // Say why instead of hiding the feature; a click retries.
+            var retry = el('button', { type: 'button', class: 'lgg-remerge-open lgg-remerge-failed',
+                title: 'Could not list the merge commits: ' + list.error + ' (click to retry)' }, 'Manual resolution ⚠');
+            retry.addEventListener('click', function () {
+                merges.delete(s.key);
+                loading.delete(s.key);
+                if (window.lggTabs) window.lggTabs.rerender();
+            });
+            bar.appendChild(retry);
             return;
         }
         if (!list.length) return;
