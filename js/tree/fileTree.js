@@ -119,14 +119,6 @@
         return root;
     }
 
-    // GitHub anchors each file of a PR diff at #diff-<sha256 hex of the path>.
-    async function diffAnchor(path) {
-        var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(path));
-        return 'diff-' + Array.from(new Uint8Array(buf)).map(function (b) {
-            return b.toString(16).padStart(2, '0');
-        }).join('');
-    }
-
     // ------------------------------------------------------------------ UI
 
     function el(tag, attrs) {
@@ -188,16 +180,20 @@
                 style: 'padding-left:' + (22 + depth * 14) + 'px', title: f.path, text: f.name });
             if (c.pr) {
                 row.href = '#';
+                row.setAttribute('data-path', f.path);
+                var box = el('input', { type: 'checkbox', class: 'lgg-tree-viewed', title: 'Viewed' });
+                box.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    toggleViewed(c, f.path);
+                });
+                row.insertBefore(box, row.firstChild);
                 row.appendChild(el('span', { class: 'lgg-tree-stat' },
                     el('span', { class: 'lgg-tree-add', text: '+' + f.additions }),
                     el('span', { class: 'lgg-tree-del', text: ' −' + f.deletions })));
                 row.addEventListener('click', function (ev) {
                     ev.preventDefault();
-                    diffAnchor(f.path).then(function (id) {
-                        var target = document.getElementById(id) || document.querySelector('[id="' + id + '"], [data-anchor="' + id + '"]');
-                        if (target) target.scrollIntoView({ block: 'start' });
-                        else location.href = '/' + c.owner + '/' + c.repo + '/pull/' + c.pr + '/files#' + id;
-                    });
+                    window.lggTabs.openPrFile(c.owner, c.repo, c.pr, f.path);   // js/tree/fileTabs.js
                 });
             } else if (f.submodule) {
                 row.classList.add('lgg-tree-submodule');
@@ -206,6 +202,40 @@
             }
             container.appendChild(row);
         });
+    }
+
+    // Viewed checkboxes mirror GitHub's own Viewed control of each file and
+    // click it; GitHub stores the state. Files not rendered on the page (other
+    // PR tabs, or not loaded yet) show unchecked until their diff is there.
+    async function toggleViewed(c, path) {
+        var tabs = window.lggTabs;
+        var ctrl = await tabs.viewedControl(path);
+        if (!ctrl) {
+            tabs.openPrFile(c.owner, c.repo, c.pr, path);
+            await new Promise(function (r) { setTimeout(r, 1500); });
+            ctrl = await tabs.viewedControl(path);
+        }
+        if (ctrl) ctrl.click();
+        setTimeout(syncViewed, 400);
+        setTimeout(syncViewed, 1500);
+    }
+
+    var syncing = false;
+    async function syncViewed() {
+        if (syncing || !window.lggTabs) return;
+        syncing = true;
+        try {
+            var rows = document.querySelectorAll('#' + SIDEBAR_ID + ' .lgg-tree-file[data-path]');
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var box = row.querySelector('.lgg-tree-viewed');
+                var ctrl = await window.lggTabs.viewedControl(row.getAttribute('data-path'));
+                var viewed = !!ctrl && window.lggTabs.isViewed(ctrl);
+                box.checked = viewed;
+                box.title = ctrl ? (viewed ? 'Viewed' : 'Mark as viewed') : 'Open the diff to mark as viewed';
+                row.classList.toggle('lgg-tree-isviewed', viewed);
+            }
+        } finally { syncing = false; }
     }
 
     function renderInto(body, c, data, filter) {
@@ -226,6 +256,7 @@
         if (matched > entries.length) body.appendChild(el('div', { class: 'lgg-tree-note', text: 'Showing the first ' + entries.length + ' of ' + matched + ' matches; narrow the filter.' }));
         if (data.truncated) body.appendChild(el('div', { class: 'lgg-tree-note', text: 'GitHub truncated this tree (very large repo); some files are missing.' }));
         if (!matched) body.appendChild(el('div', { class: 'lgg-tree-note', text: 'No files.' }));
+        if (c.pr) syncViewed();
     }
 
     var shownKey = null;
@@ -298,6 +329,8 @@
         ensureToggle();
         document.documentElement.classList.toggle('lgg-tree-shown', isOpen());
         if (isOpen() && (shownKey !== c.key || !sb)) mount(c);
+        // GitHub renders diffs and flips Viewed as the page changes; follow it.
+        else if (isOpen() && c.pr) syncViewed();
     }
 
     var scheduled = false;
@@ -306,6 +339,19 @@
         scheduled = true;
         setTimeout(function () { scheduled = false; check(); }, 300);
     }).observe(document.documentElement, { childList: true, subtree: true });
+    // GitHub's Viewed control flips an attribute (changes view) or a checkbox
+    // (classic), neither of which adds nodes: watch those directly.
+    var viewedPending = false;
+    function viewedChanged() {
+        if (viewedPending) return;
+        viewedPending = true;
+        setTimeout(function () { viewedPending = false; if (isOpen()) syncViewed(); }, 200);
+    }
+    new MutationObserver(viewedChanged).observe(document.documentElement,
+        { subtree: true, attributes: true, attributeFilter: ['aria-pressed'] });
+    document.addEventListener('change', function (ev) {
+        if (ev.target.matches && ev.target.matches('input.js-reviewed-checkbox')) viewedChanged();
+    }, true);
     document.addEventListener('turbo:load', check);
     window.addEventListener('popstate', check);
     check();

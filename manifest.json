@@ -11,7 +11,8 @@
       "css": [
         "css/background.css",
         "css/prGraph.css",
-        "css/fileTree.css"
+        "css/fileTree.css",
+        "css/fileTabs.css"
       ],
       "js": [
         "js/showLegend.js",
@@ -35,6 +36,7 @@
         "js/fre/handler.js",
         "js/common/api.js",
         "js/pr/prGraph.js",
+        "js/tree/fileTabs.js",
         "js/tree/fileTree.js"
       ],
       "run_at": "document_end"

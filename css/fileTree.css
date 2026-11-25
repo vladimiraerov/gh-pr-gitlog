@@ -54,3 +54,5 @@ html.lgg-tree-shown #lgg-tree-toggle { display: none; }
 #lgg-tree .lgg-tree-del { color: var(--fgColor-danger, #d1242f); }
 #lgg-tree .lgg-tree-note { padding: 8px 10px; color: var(--fgColor-muted, #656d76); }
 #lgg-tree .lgg-tree-error { padding: 8px 10px; color: var(--fgColor-danger, #d1242f); }
+#lgg-tree .lgg-tree-viewed { flex: none; margin: 0 2px 0 -16px; cursor: pointer; }
+#lgg-tree .lgg-tree-isviewed { opacity: 0.55; }
