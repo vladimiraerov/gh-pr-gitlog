@@ -33,6 +33,7 @@ MIN_GIT = (2, 36)                # first release with --remerge-diff
 
 NAME_RE = re.compile(r'^[A-Za-z0-9_.-]{1,100}$')
 SHA_RE = re.compile(r'^[0-9a-fA-F]{7,40}$')
+FULL_SHA_RE = re.compile(r'^[0-9a-fA-F]{40}$')
 PR_RE = re.compile(r'^[0-9]{1,9}$')
 
 
@@ -91,30 +92,86 @@ def clone_for(owner, repo):
     raise Refusal('"%s/%s" is not mapped to a local clone in %s' % (owner, repo, CONFIG))
 
 
-def remerge(msg):
-    owner, repo = str(msg.get('owner', '')), str(msg.get('repo', ''))
-    sha, pr = str(msg.get('sha', '')), str(msg.get('pr', ''))
+def have(path, sha):
+    return git(path, 'cat-file', '-e', sha + '^{commit}').returncode == 0
+
+
+def ensure_commit(path, fetch_url, pr, sha):
+    """Fetch sha into the clone if missing: from pull/<pr>/head, else by full
+    sha (GitHub serves commits a force push left behind). Objects only."""
+    if have(path, sha):
+        return
+    wants = ['refs/pull/%s/head' % pr] + ([sha] if FULL_SHA_RE.match(sha) else [])
+    errors = []
+    for want in wants:
+        fetched = git(path, 'fetch', '--quiet', '--no-tags', '--no-write-fetch-head',
+                      fetch_url, want, timeout=300)
+        if fetched.returncode != 0:
+            errors.append(fetched.stderr.decode('utf-8', 'replace').strip())
+        if have(path, sha):
+            return
+    raise Refusal('commit %s is not fetchable from %s%s'
+                  % (sha[:7], fetch_url, (': ' + errors[-1]) if errors else ''))
+
+
+def common(msg):
+    owner, repo, pr = str(msg.get('owner', '')), str(msg.get('repo', '')), str(msg.get('pr', ''))
     if not (NAME_RE.match(owner) and NAME_RE.match(repo)):
         raise Refusal('bad owner/repo')
-    if not SHA_RE.match(sha):
-        raise Refusal('sha must be 7 to 40 hex characters')
     if not PR_RE.match(pr):
         raise Refusal('pr must be a number')
-    sha = sha.lower()
-
     version, version_text = git_version()
     if version < MIN_GIT:
-        raise Refusal('%s is too old: --remerge-diff needs git 2.36 or newer' % version_text)
+        raise Refusal('%s is too old: this needs git 2.36 or newer' % version_text)
     path, fetch_url = clone_for(owner, repo)
+    return pr, path, fetch_url
 
-    if git(path, 'cat-file', '-e', sha + '^{commit}').returncode != 0:
-        fetched = git(path, 'fetch', '--quiet', '--no-tags', '--no-write-fetch-head',
-                      fetch_url, 'refs/pull/%s/head' % pr, timeout=300)
-        if fetched.returncode != 0:
-            raise Refusal('git fetch %s pull/%s/head failed: %s'
-                          % (fetch_url, pr, fetched.stderr.decode('utf-8', 'replace').strip()))
-        if git(path, 'cat-file', '-e', sha + '^{commit}').returncode != 0:
-            raise Refusal('commit %s is not in pull/%s/head of %s' % (sha, pr, fetch_url))
+
+def capped(raw):
+    truncated = len(raw) > MAX_DIFF_BYTES
+    text = raw[:MAX_DIFF_BYTES].decode('utf-8', 'replace')
+    if truncated:
+        text = text[:text.rfind('\n') + 1]
+    return text, truncated
+
+
+def rangediff(msg):
+    """git range-diff between two revisions of a PR, each taken against its
+    merge base with base_sha (the PR's base commit), so commits are matched up
+    and a rebase alone shows as unchanged. Merge commits compare by their
+    remerge diff."""
+    shas = [str(msg.get(k, '')).lower() for k in ('from', 'to', 'base')]
+    if not all(FULL_SHA_RE.match(x) for x in shas):
+        raise Refusal('from, to and base must be full 40-character shas')
+    pr, path, fetch_url = common(msg)
+    for sha in shas:
+        ensure_commit(path, fetch_url, pr, sha)
+    frm, to, base = shas
+    bases = []
+    for rev in (frm, to):
+        mb = git(path, 'merge-base', rev, base)
+        if mb.returncode != 0:
+            raise Refusal('%s has no common history with the base %s' % (rev[:7], base[:7]))
+        bases.append(mb.stdout.decode().strip())
+    ranges = ['%s..%s' % (bases[0], frm), '%s..%s' % (bases[1], to)]
+    args = ['range-diff', '--no-color']
+    shown = git(path, *(args + ['--diff-merges=remerge'] + ranges), timeout=300)
+    if shown.returncode != 0 and b'diff-merges' in shown.stderr:
+        shown = git(path, *(args + ranges), timeout=300)   # git before range-diff knew merges
+    if shown.returncode != 0:
+        raise Refusal('git range-diff failed: ' + shown.stderr.decode('utf-8', 'replace').strip())
+    text, truncated = capped(shown.stdout)
+    return {'ok': True, 'diff': text, 'truncated': truncated,
+            'command': 'git range-diff %s %s' % ('%s..%s' % (bases[0][:9], frm[:9]), '%s..%s' % (bases[1][:9], to[:9]))}
+
+
+def remerge(msg):
+    sha = str(msg.get('sha', ''))
+    if not SHA_RE.match(sha):
+        raise Refusal('sha must be 7 to 40 hex characters')
+    sha = sha.lower()
+    pr, path, fetch_url = common(msg)
+    ensure_commit(path, fetch_url, pr, sha)
 
     parents = git(path, 'rev-list', '--parents', '-n', '1', sha).stdout.decode().split()
     if len(parents) != 3:
@@ -126,11 +183,7 @@ def remerge(msg):
     shown = git(path, *(args + [sha]), timeout=300)
     if shown.returncode != 0:
         raise Refusal('git show failed: ' + shown.stderr.decode('utf-8', 'replace').strip())
-    raw = shown.stdout
-    truncated = len(raw) > MAX_DIFF_BYTES
-    diff = raw[:MAX_DIFF_BYTES].decode('utf-8', 'replace')
-    if truncated:
-        diff = diff[:diff.rfind('\n') + 1]
+    diff, truncated = capped(shown.stdout)
     return {
         'ok': True, 'diff': diff, 'truncated': truncated,
         'sha': sha, 'parents': parents[1:], 'clone': path,
@@ -144,6 +197,8 @@ def handle(msg):
     if msg.get('action') == 'ping':
         _, version_text = git_version()
         return {'ok': True, 'git': version_text, 'config': CONFIG}
+    if msg.get('action') == 'rangediff':
+        return rangediff(msg)
     return remerge(msg)
 
 

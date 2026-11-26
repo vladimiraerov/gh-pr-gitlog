@@ -55,3 +55,11 @@
     background: var(--bgColor-muted, #f6f8fa);
 }
 #lgg-tabs .lgg-remerge-failed { color: var(--fgColor-attention, #9a6700); font-weight: 500; }
+/* Rebase-aware revision diff (git range-diff) in the same panel. */
+#lgg-remerge .lgg-rd { font: 12px/18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-all; margin-top: 8px; }
+#lgg-remerge .lgg-rd-pair { font-weight: 600; margin-top: 10px; padding: 2px 4px; background: var(--bgColor-muted, #f6f8fa); }
+#lgg-remerge .lgg-rd-dropped { color: var(--fgColor-danger, #d1242f); }
+#lgg-remerge .lgg-rd-added { color: var(--fgColor-success, #1a7f37); }
+#lgg-remerge .lgg-rd-add { background: var(--diffBlob-addition-bgColor-line, #dafbe1); }
+#lgg-remerge .lgg-rd-del { background: var(--diffBlob-deletion-bgColor-line, #ffebe9); }
+#lgg-remerge .lgg-rd-hunk { color: var(--fgColor-muted, #59636e); background: var(--diffBlob-hunk-bgColor-num, #ddf4ff); }
