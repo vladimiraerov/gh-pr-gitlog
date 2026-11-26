@@ -158,7 +158,8 @@
                 seg.appendChild(b);
             });
             bar.appendChild(seg);
-            var expand = el('button', { type: 'button', class: 'lgg-tabs-expand', title: 'Show every changed file in full' }, 'Expand all');
+            var expand = el('button', { type: 'button', class: 'lgg-tabs-expand' + (expandedPage === location.href ? ' lgg-active' : ''),
+                title: 'Show every changed file in full' }, 'Expand all');
             expand.addEventListener('click', function () { expandAll(expand); });
             bar.appendChild(expand);
         }
@@ -179,6 +180,8 @@
     function controlLabel(e) {
         return (e.getAttribute('aria-label') || e.getAttribute('title') || e.textContent || '').trim();
     }
+
+    var expandedPage = null;   // the page Expand all last ran on, so the button shows it
 
     async function expandAll(button) {
         button.disabled = true;
@@ -206,8 +209,10 @@
             total += batch.length;
             await new Promise(function (r) { setTimeout(r, 600); });
         }
+        expandedPage = location.href;
         button.disabled = false;
         button.textContent = 'Expand all';
+        button.classList.add('lgg-active');
         button.title = total ? 'Expanded (' + total + ' clicks). Click again for anything loaded since.' : 'Nothing left to expand';
     }
 

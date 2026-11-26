@@ -79,3 +79,13 @@
     color: var(--fgColor-accent, #0969da);
 }
 #lgg-tabs .lgg-revs-cell.lgg-revs-current { background: var(--bgColor-accent-emphasis, #0969da); color: var(--fgColor-onEmphasis, #fff); font-weight: 600; }
+
+/* One look for every active control in the bar: the current diff view, Expand all
+   once it ran, an open Manual resolution panel, a selected revision. */
+#lgg-tabs .lgg-tabs-diffmode button.lgg-on,
+#lgg-tabs .lgg-tabs-expand.lgg-active,
+#lgg-tabs .lgg-remerge-open.lgg-active {
+    background: var(--bgColor-accent-muted, #ddf4ff); border-color: var(--borderColor-accent-emphasis, #0969da);
+    color: var(--fgColor-accent, #0969da); box-shadow: none; font-weight: 600;
+}
+#lgg-tabs .lgg-tabs-diffmode button.lgg-on + button { border-left-color: var(--borderColor-accent-emphasis, #0969da); }

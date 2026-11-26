@@ -142,7 +142,7 @@
         var bar = document.getElementById('lgg-tabs');
         var old = document.getElementById(PANEL_ID);
         if (old) old.remove();
-        var panel = el('section', { id: PANEL_ID, 'data-pr': s.key, 'aria-label': 'Manual resolution' });
+        var panel = el('section', { id: PANEL_ID, 'data-pr': s.key, 'data-kind': 'remerge', 'aria-label': 'Manual resolution' });
         var head = el('div', { class: 'lgg-remerge-head' });
         var titles = el('div', { class: 'lgg-remerge-titles' });
         var title = el('div', { class: 'lgg-remerge-title' }, 'Manual resolution of ');
@@ -169,7 +169,10 @@
         });
         head.appendChild(copy);
         var close = el('button', { type: 'button', class: 'lgg-remerge-btn', 'aria-label': 'Close' }, 'Close');
-        close.addEventListener('click', function () { panel.remove(); });
+        close.addEventListener('click', function () {
+            panel.remove();
+            if (window.lggTabs) window.lggTabs.rerender();
+        });
         head.appendChild(close);
         panel.appendChild(head);
 
@@ -246,7 +249,19 @@
         var btn = el('button', { type: 'button', class: 'lgg-remerge-open',
             title: 'Show only the hand-made part of ' + (list.length > 1 ? 'the chosen merge' : list[0].sha.slice(0, 7)) },
             'Manual resolution');
-        btn.addEventListener('click', function () { open(s, pick ? pick.value : list[0].sha, false); });
+        // Highlighted while its panel is open.
+        var shown = document.getElementById(PANEL_ID);
+        if (shown && shown.getAttribute('data-kind') === 'remerge' && shown.getAttribute('data-pr') === s.key) {
+            btn.classList.add('lgg-active');
+            var sha7 = shown.querySelector('.lgg-remerge-sha');
+            if (pick && sha7) Array.prototype.forEach.call(pick.options, function (o) {
+                if (o.value.slice(0, 7) === sha7.textContent) pick.value = o.value;
+            });
+        }
+        btn.addEventListener('click', function () {
+            open(s, pick ? pick.value : list[0].sha, false);
+            if (window.lggTabs) window.lggTabs.rerender();
+        });
         group.appendChild(btn);
         bar.appendChild(group);
     }
