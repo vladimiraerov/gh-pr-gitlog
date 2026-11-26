@@ -251,6 +251,8 @@
         bar.appendChild(group);
     }
 
+    // The diff view, for other git panels (js/pr/revisions.js).
+    window.lggDiffView = { parseDiff: parseDiff, renderFiles: renderFiles, setupHelp: setupHelp };
     window.lggTabBarHooks = (window.lggTabBarHooks || []).concat([hook]);
     if (window.lggTabs) window.lggTabs.rerender();
 })();

@@ -165,6 +165,34 @@ def rangediff(msg):
             'command': 'git range-diff %s %s' % ('%s..%s' % (bases[0][:9], frm[:9]), '%s..%s' % (bases[1][:9], to[:9]))}
 
 
+def plain_diff(msg):
+    """git diff between two commits of a PR. With "base", the diff is from the
+    merge base of "to" and base (the PR as of that revision); otherwise from
+    "from" itself (what changed between two revisions)."""
+    to = str(msg.get('to', '')).lower()
+    frm = str(msg.get('from', '')).lower()
+    base = str(msg.get('base', '')).lower()
+    if not FULL_SHA_RE.match(to) or not (FULL_SHA_RE.match(frm) or FULL_SHA_RE.match(base)):
+        raise Refusal('to and either from or base must be full 40-character shas')
+    pr, path, fetch_url = common(msg)
+    for sha in (x for x in (to, frm, base) if x):
+        ensure_commit(path, fetch_url, pr, sha)
+    if base:
+        mb = git(path, 'merge-base', to, base)
+        if mb.returncode != 0:
+            raise Refusal('%s has no common history with the base %s' % (to[:7], base[:7]))
+        frm = mb.stdout.decode().strip()
+    args = ['diff', '--no-color', '--no-ext-diff', '--no-textconv']
+    if msg.get('ignoreWhitespace'):
+        args.append('-w')
+    shown = git(path, *(args + [frm, to]), timeout=300)
+    if shown.returncode != 0:
+        raise Refusal('git diff failed: ' + shown.stderr.decode('utf-8', 'replace').strip())
+    text, truncated = capped(shown.stdout)
+    return {'ok': True, 'diff': text, 'truncated': truncated,
+            'command': 'git diff%s %s %s' % (' -w' if msg.get('ignoreWhitespace') else '', frm[:9], to[:9])}
+
+
 def remerge(msg):
     sha = str(msg.get('sha', ''))
     if not SHA_RE.match(sha):
@@ -199,6 +227,8 @@ def handle(msg):
         return {'ok': True, 'git': version_text, 'config': CONFIG}
     if msg.get('action') == 'rangediff':
         return rangediff(msg)
+    if msg.get('action') == 'diff':
+        return plain_diff(msg)
     return remerge(msg)
 
 

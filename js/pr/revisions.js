@@ -124,6 +124,56 @@
         });
     }
 
+    // A git diff in the page, drawn like Manual resolution (js/pr/remerge.js).
+    function diffPanel(s, title, sub, payload) {
+        var old = document.getElementById('lgg-remerge');
+        if (old) old.remove();
+        var panel = el('section', { id: 'lgg-remerge', 'data-pr': s.key, 'aria-label': title });
+        var head = el('div', { class: 'lgg-remerge-head' });
+        var titles = el('div', { class: 'lgg-remerge-titles' });
+        titles.appendChild(el('div', { class: 'lgg-remerge-title' }, title));
+        titles.appendChild(el('div', { class: 'lgg-remerge-sub' }, sub));
+        head.appendChild(titles);
+        var wsLabel = el('label', { class: 'lgg-remerge-ws' });
+        var ws = el('input', { type: 'checkbox' });
+        ws.checked = !!payload.ignoreWhitespace;
+        ws.addEventListener('change', function () {
+            diffPanel(s, title, sub, Object.assign({}, payload, { ignoreWhitespace: ws.checked }));
+        });
+        wsLabel.appendChild(ws);
+        wsLabel.appendChild(document.createTextNode(' Ignore whitespace'));
+        head.appendChild(wsLabel);
+        var close = el('button', { type: 'button', class: 'lgg-remerge-btn' }, 'Close');
+        close.addEventListener('click', function () { panel.remove(); });
+        head.appendChild(close);
+        panel.appendChild(head);
+        var body = el('div', { class: 'lgg-remerge-body' }, 'Running git diff…');
+        panel.appendChild(body);
+        var bar = document.getElementById('lgg-tabs');
+        if (bar) bar.insertAdjacentElement('afterend', panel);
+        else (document.querySelector('main') || document.body).prepend(panel);
+        panel.scrollIntoView({ block: 'start' });
+
+        chrome.runtime.sendMessage({ action: 'lggRemerge', payload: Object.assign({ action: 'diff' }, payload) }, function (reply) {
+            if (!document.body.contains(body)) return;
+            body.textContent = '';
+            var view = window.lggDiffView;
+            if (chrome.runtime.lastError || !reply || !reply.ok) {
+                var msg = (chrome.runtime.lastError && chrome.runtime.lastError.message) || (reply && reply.error) || 'no reply';
+                if (!reply || reply.hostMissing || /not mapped|repos\.json/.test(msg)) view.setupHelp(body, msg);
+                else body.appendChild(el('div', { class: 'lgg-remerge-error' }, msg));
+                return;
+            }
+            var files = view.parseDiff(reply.diff);
+            if (!files.length) {
+                body.appendChild(el('div', { class: 'lgg-remerge-empty' }, 'No differences.'));
+                return;
+            }
+            if (reply.truncated) body.appendChild(el('div', { class: 'lgg-remerge-note' }, 'Output cut at 900 KB; run ' + reply.command + ' for all of it.'));
+            view.renderFiles(body, files);
+        });
+    }
+
     // ------------------------------------------------------ revision menu
 
     function hook(bar, s) {
@@ -169,23 +219,30 @@
             // Left: the PR as of revision i (its diff against the PR base).
             var one = el('a', { class: 'lgg-revs-cell', role: 'menuitem', href: base + data.base + '...' + r.sha,
                 title: 'Revision ' + (i + 1) + ': ' + describe(revs, i) }, String(i + 1));
+            one.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                closeMenu();
+                diffPanel(s, 'Revision ' + (i + 1) + ' of ' + n, describe(revs, i) + ' · the PR as of this revision, against its base',
+                    { owner: s.owner, repo: s.repo, pr: s.pr, to: r.sha, base: data.base });
+            });
             row.appendChild(one);
             // Right: what changed from revision i to the latest.
             if (i < n - 1) {
                 var range = el('a', { class: 'lgg-revs-cell', role: 'menuitem', href: base + r.sha + '..' + revs[n - 1].sha,
                     title: 'Changes from revision ' + (i + 1) + ' to ' + n }, (i + 1) + '–' + n);
                 range.addEventListener('click', function (ev) {
-                    if (!ignore.checked) return;      // GitHub's two-dot compare, in this tab
                     ev.preventDefault();
                     closeMenu();
-                    rangeDiffPanel(s, revs, data, i, n - 1);
+                    if (ignore.checked) { rangeDiffPanel(s, revs, data, i, n - 1); return; }
+                    diffPanel(s, 'Revision ' + (i + 1) + ' → ' + n, 'What changed from ' + revs[i].sha.slice(0, 7) + ' to ' +
+                        revs[n - 1].sha.slice(0, 7) + ' (includes base-branch changes if a revision was rebased)',
+                        { owner: s.owner, repo: s.repo, pr: s.pr, from: r.sha, to: revs[n - 1].sha });
                 });
                 row.appendChild(range);
             } else {
                 row.appendChild(el('span', { class: 'lgg-revs-cell lgg-revs-empty' }));
             }
-            one.addEventListener('click', closeMenu);
-            menu.appendChild(row);
+                menu.appendChild(row);
         });
         menu.appendChild(ignoreLabel);
         button.addEventListener('click', function (ev) {
