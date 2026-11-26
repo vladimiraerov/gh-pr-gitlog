@@ -46,3 +46,17 @@
     background: var(--button-default-bgColor-rest, #f6f8fa); color: var(--fgColor-default, #25292e);
 }
 #lgg-tabs .lgg-tabs-expand:disabled { opacity: 0.6; cursor: progress; }
+/* Revisions picker (js/pr/revisions.js). */
+#lgg-tabs .lgg-revs { display: flex; align-items: center; align-self: center; gap: 4px; flex: none; }
+#lgg-tabs .lgg-revs-label, #lgg-tabs .lgg-revs-arrow { color: var(--fgColor-muted, #59636e); }
+#lgg-tabs .lgg-revs select {
+    font: inherit; max-width: 240px; padding: 1px 4px; border-radius: 6px;
+    border: 1px solid var(--borderColor-default, #d1d9e0);
+    background: var(--bgColor-default, #fff); color: var(--fgColor-default, #1f2328);
+}
+#lgg-tabs .lgg-revs-btn {
+    font: inherit; font-weight: 500; line-height: 20px; padding: 1px 10px; cursor: pointer; border-radius: 6px;
+    border: 1px solid var(--borderColor-default, #d1d9e0);
+    background: var(--button-default-bgColor-rest, #f6f8fa); color: var(--fgColor-default, #25292e);
+}
+#lgg-tabs .lgg-revs-failed { color: var(--fgColor-attention, #9a6700); }

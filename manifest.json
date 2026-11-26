@@ -39,7 +39,8 @@
         "js/pr/prGraph.js",
         "js/tree/fileTabs.js",
         "js/tree/fileTree.js",
-        "js/pr/remerge.js"
+        "js/pr/remerge.js",
+        "js/pr/revisions.js"
       ],
       "run_at": "document_end"
     }
