@@ -74,3 +74,8 @@
     display: block; margin-top: 4px; padding: 6px 12px 2px; white-space: nowrap; cursor: pointer;
     border-top: 1px solid var(--borderColor-muted, #d1d9e0b3); color: var(--fgColor-muted, #59636e);
 }
+#lgg-tabs .lgg-revs-btn.lgg-revs-selected {
+    background: var(--bgColor-accent-muted, #ddf4ff); border-color: var(--borderColor-accent-emphasis, #0969da);
+    color: var(--fgColor-accent, #0969da);
+}
+#lgg-tabs .lgg-revs-cell.lgg-revs-current { background: var(--bgColor-accent-emphasis, #0969da); color: var(--fgColor-onEmphasis, #fff); font-weight: 600; }

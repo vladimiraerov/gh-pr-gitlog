@@ -11,6 +11,7 @@
     var CACHE_MS = 5 * 60 * 1000;
     var revisions = new Map();   // PR key -> {revs: [{sha, how, date}], base} or {error}
     var loading = new Map();
+    var selection = new Map();   // PR key -> {from, to} (from null: one revision) while its panel is open
 
     function el(tag, attrs, text) {
         var node = document.createElement(tag);
@@ -69,7 +70,7 @@
     function rangeDiffPanel(s, revs, data, a, b) {
         var old = document.getElementById('lgg-remerge');
         if (old) old.remove();
-        var panel = el('section', { id: 'lgg-remerge', 'data-pr': s.key, 'aria-label': 'Revision diff' });
+        var panel = el('section', { id: 'lgg-remerge', 'data-pr': s.key, 'data-kind': 'rev', 'aria-label': 'Revision diff' });
         var head = el('div', { class: 'lgg-remerge-head' });
         var titles = el('div', { class: 'lgg-remerge-titles' });
         titles.appendChild(el('div', { class: 'lgg-remerge-title' }, 'Revision ' + (a + 1) + ' → ' + (b + 1) + ', ignoring rebases'));
@@ -77,7 +78,7 @@
             'Each revision\'s commits against its own base, matched up by git range-diff: = unchanged, ! changed, < dropped, > added'));
         head.appendChild(titles);
         var close = el('button', { type: 'button', class: 'lgg-remerge-btn' }, 'Close');
-        close.addEventListener('click', function () { panel.remove(); });
+        close.addEventListener('click', function () { panel.remove(); selection.delete(s.key); refresh(); });
         head.appendChild(close);
         panel.appendChild(head);
         var body = el('div', { class: 'lgg-remerge-body' }, 'Running git range-diff…');
@@ -128,7 +129,7 @@
     function diffPanel(s, title, sub, payload) {
         var old = document.getElementById('lgg-remerge');
         if (old) old.remove();
-        var panel = el('section', { id: 'lgg-remerge', 'data-pr': s.key, 'aria-label': title });
+        var panel = el('section', { id: 'lgg-remerge', 'data-pr': s.key, 'data-kind': 'rev', 'aria-label': title });
         var head = el('div', { class: 'lgg-remerge-head' });
         var titles = el('div', { class: 'lgg-remerge-titles' });
         titles.appendChild(el('div', { class: 'lgg-remerge-title' }, title));
@@ -144,7 +145,7 @@
         wsLabel.appendChild(document.createTextNode(' Ignore whitespace'));
         head.appendChild(wsLabel);
         var close = el('button', { type: 'button', class: 'lgg-remerge-btn' }, 'Close');
-        close.addEventListener('click', function () { panel.remove(); });
+        close.addEventListener('click', function () { panel.remove(); selection.delete(s.key); refresh(); });
         head.appendChild(close);
         panel.appendChild(head);
         var body = el('div', { class: 'lgg-remerge-body' }, 'Running git diff…');
@@ -174,6 +175,14 @@
         });
     }
 
+    function refresh() { if (window.lggTabs) window.lggTabs.rerender(); }
+
+    // Remember what the open panel shows, so the button and menu say so.
+    function select(s, from, to) {
+        selection.set(s.key, { from: from, to: to });
+        refresh();
+    }
+
     // ------------------------------------------------------ revision menu
 
     function hook(bar, s) {
@@ -201,10 +210,17 @@
         var revs = data.revs;
         var n = revs.length;
         if (!n) return;
+        // The selection lasts while its panel is open (Close, or another panel, ends it).
+        var panelOpen = document.getElementById('lgg-remerge');
+        if (!panelOpen || panelOpen.getAttribute('data-kind') !== 'rev' || panelOpen.getAttribute('data-pr') !== s.key) selection.delete(s.key);
+        var sel = selection.get(s.key);
         var base = '/' + s.owner + '/' + s.repo + '/compare/';
         var wrap = el('div', { class: 'lgg-revs' });
         var button = el('button', { type: 'button', class: 'lgg-revs-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false' },
-            'Revision ' + n + ' of ' + n + ' ▾');
+            (!sel ? 'Revision ' + n + ' of ' + n
+                : sel.from == null ? 'Revision ' + (sel.to + 1) + ' of ' + n
+                : 'Revision ' + (sel.from + 1) + '–' + (sel.to + 1) + (sel.rebase ? ' (rebase-aware)' : '')) + ' ▾');
+        if (sel) button.classList.add('lgg-revs-selected');
         var menu = el('div', { class: 'lgg-revs-menu', role: 'menu', hidden: '' });
         var ignoreLabel = el('label', { class: 'lgg-revs-ignore' });
         var ignore = el('input', { type: 'checkbox' });
@@ -224,7 +240,9 @@
                 closeMenu();
                 diffPanel(s, 'Revision ' + (i + 1) + ' of ' + n, describe(revs, i) + ' · the PR as of this revision, against its base',
                     { owner: s.owner, repo: s.repo, pr: s.pr, to: r.sha, base: data.base });
+                select(s, null, i);
             });
+            if (sel && sel.from == null && sel.to === i) one.classList.add('lgg-revs-current');
             row.appendChild(one);
             // Right: what changed from revision i to the latest.
             if (i < n - 1) {
@@ -233,11 +251,18 @@
                 range.addEventListener('click', function (ev) {
                     ev.preventDefault();
                     closeMenu();
-                    if (ignore.checked) { rangeDiffPanel(s, revs, data, i, n - 1); return; }
+                    if (ignore.checked) {
+                        rangeDiffPanel(s, revs, data, i, n - 1);
+                        selection.set(s.key, { from: i, to: n - 1, rebase: true });
+                        refresh();
+                        return;
+                    }
                     diffPanel(s, 'Revision ' + (i + 1) + ' → ' + n, 'What changed from ' + revs[i].sha.slice(0, 7) + ' to ' +
                         revs[n - 1].sha.slice(0, 7) + ' (includes base-branch changes if a revision was rebased)',
                         { owner: s.owner, repo: s.repo, pr: s.pr, from: r.sha, to: revs[n - 1].sha });
+                    select(s, i, n - 1);
                 });
+                if (sel && sel.from === i) range.classList.add('lgg-revs-current');
                 row.appendChild(range);
             } else {
                 row.appendChild(el('span', { class: 'lgg-revs-cell lgg-revs-empty' }));
