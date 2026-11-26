@@ -126,7 +126,7 @@
     }
 
     // A git diff in the page, drawn like Manual resolution (js/pr/remerge.js).
-    function diffPanel(s, title, sub, payload) {
+    function diffPanel(s, title, sub, payload, githubUrl) {
         var old = document.getElementById('lgg-remerge');
         if (old) old.remove();
         var panel = el('section', { id: 'lgg-remerge', 'data-pr': s.key, 'data-kind': 'rev', 'aria-label': title });
@@ -139,7 +139,7 @@
         var ws = el('input', { type: 'checkbox' });
         ws.checked = !!payload.ignoreWhitespace;
         ws.addEventListener('change', function () {
-            diffPanel(s, title, sub, Object.assign({}, payload, { ignoreWhitespace: ws.checked }));
+            diffPanel(s, title, sub, Object.assign({}, payload, { ignoreWhitespace: ws.checked }), githubUrl);
         });
         wsLabel.appendChild(ws);
         wsLabel.appendChild(document.createTextNode(' Ignore whitespace'));
@@ -163,6 +163,10 @@
                 var msg = (chrome.runtime.lastError && chrome.runtime.lastError.message) || (reply && reply.error) || 'no reply';
                 if (!reply || reply.hostMissing || /not mapped|repos\.json/.test(msg)) view.setupHelp(body, msg);
                 else body.appendChild(el('div', { class: 'lgg-remerge-error' }, msg));
+                // GitHub's compare page shows the same diff without the local clone.
+                var alt = el('p', { class: 'lgg-remerge-sub' });
+                alt.appendChild(el('a', { href: githubUrl }, 'Open this diff on GitHub instead'));
+                body.appendChild(alt);
                 return;
             }
             var files = view.parseDiff(reply.diff);
@@ -239,7 +243,7 @@
                 ev.preventDefault();
                 closeMenu();
                 diffPanel(s, 'Revision ' + (i + 1) + ' of ' + n, describe(revs, i) + ' · the PR as of this revision, against its base',
-                    { owner: s.owner, repo: s.repo, pr: s.pr, to: r.sha, base: data.base });
+                    { owner: s.owner, repo: s.repo, pr: s.pr, to: r.sha, base: data.base }, base + data.base + '...' + r.sha);
                 select(s, null, i);
             });
             if (sel && sel.from == null && sel.to === i) one.classList.add('lgg-revs-current');
@@ -259,7 +263,7 @@
                     }
                     diffPanel(s, 'Revision ' + (i + 1) + ' → ' + n, 'What changed from ' + revs[i].sha.slice(0, 7) + ' to ' +
                         revs[n - 1].sha.slice(0, 7) + ' (includes base-branch changes if a revision was rebased)',
-                        { owner: s.owner, repo: s.repo, pr: s.pr, from: r.sha, to: revs[n - 1].sha });
+                        { owner: s.owner, repo: s.repo, pr: s.pr, from: r.sha, to: revs[n - 1].sha }, base + r.sha + '..' + revs[n - 1].sha);
                     select(s, i, n - 1);
                 });
                 if (sel && sel.from === i) range.classList.add('lgg-revs-current');
