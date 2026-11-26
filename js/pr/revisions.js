@@ -168,14 +168,14 @@
             var row = el('div', { class: 'lgg-revs-row' });
             // Left: the PR as of revision i (its diff against the PR base).
             var one = el('a', { class: 'lgg-revs-cell', role: 'menuitem', href: base + data.base + '...' + r.sha,
-                target: '_blank', rel: 'noopener', title: 'Revision ' + (i + 1) + ': ' + describe(revs, i) }, String(i + 1));
+                title: 'Revision ' + (i + 1) + ': ' + describe(revs, i) }, String(i + 1));
             row.appendChild(one);
             // Right: what changed from revision i to the latest.
             if (i < n - 1) {
                 var range = el('a', { class: 'lgg-revs-cell', role: 'menuitem', href: base + r.sha + '..' + revs[n - 1].sha,
-                    target: '_blank', rel: 'noopener', title: 'Changes from revision ' + (i + 1) + ' to ' + n }, (i + 1) + '–' + n);
+                    title: 'Changes from revision ' + (i + 1) + ' to ' + n }, (i + 1) + '–' + n);
                 range.addEventListener('click', function (ev) {
-                    if (!ignore.checked) return;      // GitHub's two-dot compare, in a new tab
+                    if (!ignore.checked) return;      // GitHub's two-dot compare, in this tab
                     ev.preventDefault();
                     closeMenu();
                     rangeDiffPanel(s, revs, data, i, n - 1);
